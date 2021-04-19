@@ -1,0 +1,15 @@
+IOC包括
+    Map 容器
+    BeanFactory 工厂
+    ApplicationContext 上下文。持有BeanFactory引用，门面模式
+    BeanDefinitionReader 解析器。负责解析所有配置文件
+    Definition 元信息,配置
+        xml、yaml、annotation、properties
+        引入BeanDefinition保存这些信息
+    Bean 实例，反射实例化Object
+    BeanWrapper 包装器模式
+        持有Bean的引用，缓存到IOC容器中
+
+
+访问流程
+    DispatchServlet  ->  ApplicationContext 持有对方的引用
