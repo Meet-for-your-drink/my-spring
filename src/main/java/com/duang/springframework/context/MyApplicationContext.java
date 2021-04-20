@@ -11,9 +11,7 @@ import com.duang.springframework.beans.support.MyDefaultListableBeanFactory;
 import com.duang.springframework.utils.CommonUtils;
 
 import java.lang.reflect.Field;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author duang
@@ -29,8 +27,21 @@ public class MyApplicationContext implements MyBeanFactory {
     //三级缓存
     private Map<String,MyBeanWrapper> factoryBeanInstanceCache = new HashMap<String, MyBeanWrapper>();
 
+    //一级缓存：保存成熟的bean
+    private Map<String,Object> singletonObjects = new HashMap<String, Object>();
+
+    //二级缓存，存放早期纯净的bean
+    private Map<String,Object> earlySingletonObjects = new HashMap<String, Object>();
+
+    //循环依赖的标志，当前正在创建的BeanName，Mark一下
+    private Set<String> singletonCurrentlyInCreation = new HashSet<String>();
+
+
     //存放原生对象
     private Map<String,Object> factoryBeanObjectCache = new HashMap<String, Object>();
+
+    //存放类和实例,保证单例
+    private Map<String,Object> instantiateBeanMap = new HashMap<String,Object>();
 
     public MyApplicationContext(String ... configLocations) {
         //加载配置文件
@@ -67,8 +78,24 @@ public class MyApplicationContext implements MyBeanFactory {
     public Object getBean(String beanName) {
         //从registry中获取到BeanDefinition
         MyBeanDefinition definition = this.registry.beanDefinitionMap.get(beanName);
+
+        //从一级缓存中获取Bean
+        Object singleton = getSingleton(beanName,definition);
+        if(null != singleton){
+            return singleton;
+        }
+        //标记bean正在创建
+        if(!singletonCurrentlyInCreation.contains(beanName)){
+            singletonCurrentlyInCreation.add(beanName);
+        }
+
         //反射进行实例化
         Object instance = instantiateBean(beanName,definition);
+
+        //实例化完成先存入一级缓存
+        this.singletonObjects.put(beanName,instance);
+
+
         //将返回的bean对象封装成BeanWrapper
         MyBeanWrapper beanWrapper = new MyBeanWrapper(instance);
         //执行依赖注入
@@ -80,6 +107,23 @@ public class MyApplicationContext implements MyBeanFactory {
         //保存到IOC容器中
         this.factoryBeanInstanceCache.put(beanName,beanWrapper);
         return beanWrapper.getWrappedInstance();
+    }
+
+    private Object getSingleton(String beanName, MyBeanDefinition definition) {
+        //先去一级缓存获取
+        Object bean = singletonObjects.get(beanName);
+        //如果一级缓存中没有,但是又有创建标识，说明存在循环依赖
+        if(null == bean && this.singletonCurrentlyInCreation.contains(beanName)){
+            bean = this.earlySingletonObjects.get(beanName);
+            //二级缓存中也不存在时从三级缓存获取
+            if(null == bean){
+                //****instantiateBean放入的不是三级缓存但最终的对象会被放入三级缓存
+                bean = instantiateBean(beanName,definition);
+                //创建出来的对象放入二级缓存中
+                earlySingletonObjects.put(beanName,bean);
+            }
+        }
+        return bean;
     }
 
     private void populateBean(String beanName, MyBeanDefinition definition, MyBeanWrapper beanWrapper) throws Exception {
@@ -97,7 +141,8 @@ public class MyApplicationContext implements MyBeanFactory {
             String autowireBeanName = declareField.getAnnotation(MyAutowired.class).value().trim() == ""?
                     CommonUtils.lowHead(declareField.getClass().getSimpleName()): declareField.getAnnotation(MyAutowired.class).value();
             if(this.factoryBeanInstanceCache.containsKey(autowireBeanName)){
-                declareField.set(instance,this.factoryBeanInstanceCache.get(autowireBeanName).getWrappedInstance());
+//                declareField.set(instance,this.factoryBeanInstanceCache.get(autowireBeanName).getWrappedInstance());
+                declareField.set(instance,getBean(autowireBeanName));
             }else{
                 throw new Exception("miss "+beanName+" on "+instance.getClass().getName()+"."+ declareField.getName());
             }
@@ -108,9 +153,12 @@ public class MyApplicationContext implements MyBeanFactory {
         String className = definition.getBeanClassName();
         Object instance = null;
         try {
-            instance = Class.forName(className).newInstance();
+            if(instantiateBeanMap.containsKey(className)){
+                instance = instantiateBeanMap.get(className);
+            }else{
+                instance = Class.forName(className).newInstance();
+            }
             //如果是代理对象，触发AOP
-
             this.factoryBeanObjectCache.put(beanName,instance);
         } catch (InstantiationException e) {
             e.printStackTrace();
