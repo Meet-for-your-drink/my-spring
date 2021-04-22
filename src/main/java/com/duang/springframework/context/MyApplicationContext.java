@@ -179,4 +179,7 @@ public class MyApplicationContext implements MyBeanFactory {
     }
 
 
+    public Properties getConfig() {
+        return this.reader.getConfig();
+    }
 }

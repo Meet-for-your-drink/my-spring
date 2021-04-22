@@ -1,0 +1,11 @@
+FlashMap缓存参数
+
+request.forward 转发，自动携带上一次请求的所有参数
+response.redirect 重定向，丢失上一次请求的所有参数
+
+总结：
+    1.找到对应的HandlerMapping
+    2.找到对应的HandlerAdapter
+    3.ha.handler()找到对应的ModelAndView
+    4.ViewResolver找到对应的View对象
+    5.view.render
