@@ -42,16 +42,14 @@ public class MyMethodInvocation implements MyJoinPoint {
         Object advice = this.interceptorsAndDynamicMethodMatchers.get(++currentInterceptorIndex);
         if(advice instanceof MyMethodInterceptor){
             MyMethodInterceptor methodInterceptor = (MyMethodInterceptor)advice;
-            methodInterceptor.invoke(this);
+            return methodInterceptor.invoke(this);
         }else{
             return proceed();
         }
-
-        return null;
     }
 
     private Object invokeJoinPoint() throws Exception {
-        return this.method.invoke(targetClass,arguments);
+        return this.method.invoke(target,arguments);
     }
 
     public Object getProxy() {
