@@ -3,6 +3,9 @@ package com.duang.springframework.context;
 import com.duang.springframework.annotation.MyAutowired;
 import com.duang.springframework.annotation.MyController;
 import com.duang.springframework.annotation.MyService;
+import com.duang.springframework.aop.MyDefaultAopProxyFactory;
+import com.duang.springframework.aop.config.MyAopConfig;
+import com.duang.springframework.aop.support.MyAdviceSupport;
 import com.duang.springframework.beans.config.MyBeanDefinition;
 import com.duang.springframework.beans.support.MyBeanDefinitionReader;
 import com.duang.springframework.beans.support.MyBeanWrapper;
@@ -21,6 +24,8 @@ import java.util.*;
 public class MyApplicationContext implements MyBeanFactory {
 
     private MyDefaultListableBeanFactory registry = new MyDefaultListableBeanFactory();
+
+    private MyDefaultAopProxyFactory proxyFactory = new MyDefaultAopProxyFactory();
 
     private MyBeanDefinitionReader reader = null;
 
@@ -138,9 +143,15 @@ public class MyApplicationContext implements MyBeanFactory {
             }
             //强制访问
             declareField.setAccessible(true);
-            String autowireBeanName = declareField.getAnnotation(MyAutowired.class).value().trim() == ""?
-                    CommonUtils.lowHead(declareField.getClass().getSimpleName()): declareField.getAnnotation(MyAutowired.class).value();
-            if(this.factoryBeanInstanceCache.containsKey(autowireBeanName)){
+            MyAutowired autowired = declareField.getAnnotation(MyAutowired.class);
+            String beanValue = autowired.value();
+            String autowireBeanName = "";
+            if(beanValue.equals("")){
+                autowireBeanName = CommonUtils.lowHead(declareField.getType().getSimpleName());
+            }else{
+                autowireBeanName = declareField.getAnnotation(MyAutowired.class).value();
+            }
+            if(this.registry.beanDefinitionMap.containsKey(autowireBeanName)){
 //                declareField.set(instance,this.factoryBeanInstanceCache.get(autowireBeanName).getWrappedInstance());
                 declareField.set(instance,getBean(autowireBeanName));
             }else{
@@ -157,8 +168,18 @@ public class MyApplicationContext implements MyBeanFactory {
                 instance = instantiateBeanMap.get(className);
             }else{
                 instance = Class.forName(className).newInstance();
+                instantiateBeanMap.put(className,instance);
             }
             //如果是代理对象，触发AOP
+            //1.解析配置文件
+            MyAdviceSupport adviceSupport = instantionAopConfig();
+            adviceSupport.setTargetClass(Class.forName(className));
+            adviceSupport.setTarget(instance);
+            //判断规则，是否需要生成代理，如果要，调用代理工厂生成代理类，并且放入三级缓存
+            //如果不需要，返回原生类
+            if(adviceSupport.pointCutMatch()){
+                instance = proxyFactory.createAopProxy(adviceSupport).getProxy();
+            }
             this.factoryBeanObjectCache.put(beanName,instance);
         } catch (InstantiationException e) {
             e.printStackTrace();
@@ -168,6 +189,17 @@ public class MyApplicationContext implements MyBeanFactory {
             e.printStackTrace();
         }
         return instance;
+    }
+
+    private MyAdviceSupport instantionAopConfig() {
+        MyAopConfig aopConfig = new MyAopConfig();
+        aopConfig.setPointCut(this.reader.getConfig().getProperty("pointCut"));
+        aopConfig.setAspectClass(this.reader.getConfig().getProperty("aspectClass"));
+        aopConfig.setAspectBefore(this.reader.getConfig().getProperty("aspectBefore"));
+        aopConfig.setAspectAfter(this.reader.getConfig().getProperty("aspectAfter"));
+        aopConfig.setAspectAfterThrow(this.reader.getConfig().getProperty("aspectAfterThrow"));
+        aopConfig.setAspectAfterThrowingName(this.reader.getConfig().getProperty("aspectAfterThrowingName"));
+        return new MyAdviceSupport(aopConfig);
     }
 
     public int getBeanDefinitionCount(){

@@ -1,0 +1,20 @@
+动态代理的目的：
+    增强目标类，对目标类起到一个保护的作用
+
+AOP用途：
+    日志监控、权限控制、事务管理....
+
+切面：
+    具有多个相同特征的多个类总和
+
+AspectSupport 工具类：解析AOP配置信息，并且构建切面与切点之间的关系
+
+AopConfig 保存Aop配置信息
+
+Advice  通知，完成切面回调的封装
+
+JdkDynamicAopProxy 生成代理类的工具（有实现接口使用）
+CglibAopProxy   使用Cglib生成代理类的工具（无实现接口使用）
+
+DefaultAopProxyFactory  Aop代理工厂的默认实现
+

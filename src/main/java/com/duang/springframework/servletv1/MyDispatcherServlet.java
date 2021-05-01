@@ -1,8 +1,8 @@
 package com.duang.springframework.servletv1;
 
-import com.duang.springframework.annotation.*;
+import com.duang.springframework.annotation.MyController;
+import com.duang.springframework.annotation.MyRequestMapping;
 import com.duang.springframework.context.MyApplicationContext;
-import com.duang.springframework.utils.CommonUtils;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -11,12 +11,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.util.*;
 import java.util.regex.Pattern;
 

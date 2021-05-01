@@ -27,7 +27,7 @@ public class MyDefaultListableBeanFactory implements MyBeanFactory {
 
     public void doRegistBeanDefinition(List<MyBeanDefinition> beanDefinitions) throws Exception {
         for(MyBeanDefinition beanDefinition:beanDefinitions){
-            if(this.beanDefinitionMap.containsKey(beanDefinition)){
+            if(this.beanDefinitionMap.containsKey(beanDefinition.getFactoryBeanName())){
                 throw new Exception("The "+beanDefinition.getFactoryBeanName()+" is exists,please use alias");
             }
             beanDefinitionMap.put(beanDefinition.getFactoryBeanName(),beanDefinition);

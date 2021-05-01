@@ -7,7 +7,7 @@ import java.lang.annotation.*;
  * @date 2021-04-18
  * @Describe
  */
-@Target({ElementType.TYPE})
+@Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface MyAutowired {
